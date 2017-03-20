@@ -1,8 +1,6 @@
 import socket
 import sys
-
-HOST = ''
-PORT = 5000
+from define import *
 
 class Server(object):
 
