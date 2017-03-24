@@ -39,21 +39,29 @@ class Client(object):
         except:
             print 'error in send_data'
 
+    def inc(self):
+        self.send_data('+')
+
+    def dec(self):
+        self.send_data('-')
+
     def end_connection(self):
         print >>sys.stderr, 'closing socket'
         self.sock.close()
 
-def test():
+def main(args):
     client = Client()
-    x = '+'
-    for i in range(1, 8):
-        x += '+'
-        client.send_data(x)
+    if len(args) < 1:
+        print >> sys.stderr, 'Send with arg \'inc\' or \'dec\''
+        print >> sys.stderr, '\tUsage: python2 client <inc/dec>'
+        return sys.exit()
+
+    if args[0] == 'inc':
+        client.inc()
+    elif args[0] == 'dec':
+        client.dec()
+
     client.end_connection()
 
-def __main__():
-    # client = Client()
-    # client.send_data(raw_input())
-    test()
-
-__main__()
+if __name__ == "__main__":
+    main(sys.argv[1:])
