@@ -1,8 +1,8 @@
-import socket
-import sys
+# https://pymotw.com/2/socket/binary.html
+
 from define import *
 
-class Client(object):
+class Client():
 
     def __init__(self, **kwargs):
         # Create a TCP/IP socket
@@ -11,57 +11,81 @@ class Client(object):
             kwargs.get('host', HOST),
             kwargs.get('port', PORT)
             )
+
+    def connect(self):
         try:
             self.sock.connect(self.address)
         except:
             print 'connection refused in %s port %s' % self.address
             raise
 
-    def receive_data(self, len_data):
-        # receive data from server
-        amount_received = 0
-        amount_expected = len_data
+    def inc(self):
+        # '+' = 0x2B
+        self.send_data(struct.pack(BYTE_ORDER, PLUS))
 
-        data = ''
-        while amount_received < amount_expected:
-            data += self.sock.recv(4)
-            amount_received += len(data)
-            print >>sys.stderr, 'received "%s"' % data
-        return data
+    def dec(self):
+        # '-' = 0x2D
+        self.send_data(struct.pack(BYTE_ORDER, MINUS))
+
+    def receive_data(self):
+        response = ''
+        while True:
+            data = self.sock.recv(1)
+            print >> sys.stderr, 'received "%s"' % data
+            if data:
+                response += data
+            else:
+                print >> sys.stderr, 'no more data from', self.address
+                break
+        return response
 
     def send_data(self, data):
-        # send data throught send method
+        # send data through sendall method
+        print data
         try:
             print >>sys.stderr, 'sending "%s"' % data
             self.sock.sendall(data)
-            data = self.receive_data(len(data))
-            print data
         except:
-            print 'error in send_data'
+            print >>sys.stderr, 'error in send_data'
 
-    def inc(self):
-        self.send_data('+')
+    def get_counter(self):
+        print 'Counter =', self.receive_data()
 
-    def dec(self):
-        self.send_data('-')
+    def close_socket(self):
+        if self.sock is not None:
+            print >>sys.stderr, 'closing socket'
+            self.sock.close()
+        else:
+            pass
 
-    def end_connection(self):
-        print >>sys.stderr, 'closing socket'
-        self.sock.close()
+    def __del__(self):
+        try:
+            self.close_socket()
+        except:
+            # close() may fail if __init__ didn't complete
+            pass
 
 def main(args):
     client = Client()
     if len(args) < 1:
-        print >> sys.stderr, 'Send with arg \'inc\' or \'dec\''
-        print >> sys.stderr, '\tUsage: python2 client <inc/dec>'
+        print 'Send with arg \'inc\' or \'dec\''
+        print '\tUsage: python2 client <inc/dec>'
+        print '\t       python2 client <string>'
         return sys.exit()
 
-    if args[0] == 'inc':
-        client.inc()
-    elif args[0] == 'dec':
-        client.dec()
+    client.connect()
 
-    client.end_connection()
+    try:
+        if args[0] == 'inc':
+            client.inc()
+        elif args[0] == 'dec':
+            client.dec()
+        else:
+            client.send_data(args[0].__str__())
+        client.get_counter()
+    finally:
+        pass
+
 
 if __name__ == "__main__":
     main(sys.argv[1:])
