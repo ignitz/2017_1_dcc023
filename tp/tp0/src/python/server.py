@@ -45,6 +45,7 @@ class Server:
         print >> sys.stderr, 'connection from', self.client_address
 
         unpacker = struct.Struct(BYTE_ORDER + ' c')
+        response = struct.Struct(BYTE_ORDER + ' ccc')
 
         try:
             data = self.connection.recv(unpacker.size)
@@ -58,7 +59,14 @@ class Server:
                 print >> sys.stderr, 'invalid byte collected'
                 print >> sys.stderr, 'unpacked:', unpacked_data
 
+            print >> sys.stderr, 'sending counter to client'
             self.send_back()
+            print >> sys.stderr, 'get 3 ascii numbers from client'
+            if int(self.connection.recv(response.size)) == self.counter:
+
+                self.print_counter()
+            else:
+                print >> sys.stderr, 'error in counter received from client %s' % self.connection.address
         except:
             raise
 
@@ -86,7 +94,9 @@ class Server:
             finally:
                 # Clean up the connection
                 self.close_connection()
-                print 'Counter', self.counter
+
+    def print_counter(self):
+        print self.counter
 
     def close_connection(self):
         if self.connection is not None:
@@ -103,8 +113,30 @@ class Server:
             pass
 
 
+def manage_args(args):
+    options = dict(host='', port=PORT, counter=0, max=MAX, timeout=TIMEOUT)
+
+    for arg in args:
+        if arg[0:1] == '-':
+            key, value = arg.split("=")
+
+            if key[1:] == 'port' or key[1:] == 'max' or key[1:] == 'counter' or key[1:] == 'timeout':
+                options[key[1:]] = int(value)
+            else:
+                options[key[1:]] = value
+        else:
+            print >> sys.stderr, 'error passing args'
+
+    return Server(
+        host=options['host'], port=options['port'],
+        counter=options['counter'], max=options['max'], timeout=options['timeout']
+    )
+
 def main(args):
-    server = Server()
+    if len(args) > 0:
+        server = manage_args(args)
+    else:
+        server = Server()
     server.start_connection()
 
 if __name__ == "__main__":
