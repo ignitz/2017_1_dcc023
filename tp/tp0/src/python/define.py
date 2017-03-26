@@ -1,9 +1,3 @@
-import socket
-import sys
-import struct
-import binascii
-
-
 HOST = 'localhost'
 PORT = 51515
 MAX = 999

@@ -1,5 +1,11 @@
-# https://pymotw.com/2/socket/binary.html
+import socket
+import sys
+import struct
+import binascii
+
 from define import *
+
+# https://pymotw.com/2/socket/binary.html
 
 class Client:
     def __init__(self, **kwargs):

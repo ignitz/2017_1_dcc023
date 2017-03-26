@@ -1,3 +1,8 @@
+import socket
+import sys
+import struct
+import binascii
+
 from define import *
 
 class Server:
@@ -10,7 +15,7 @@ class Server:
         # Cria o socket TCP/IP
         self.connection = None
         self.address = None
-        self.timeout = kwargs.get('timeout', socket._GLOBAL_DEFAULT_TIMEOUT)
+        self.timeout = kwargs.get('timeout', TIMEOUT)
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
     # Contadores
@@ -75,7 +80,7 @@ class Server:
                 self.close_connection()
                 raise
 
-            self.connection.settimeout(TIMEOUT)
+            self.connection.settimeout(self.timeout)
             try:
                 self.manage_connection()
             finally:
