@@ -9,7 +9,7 @@ class Client:
             kwargs.get('host', HOST),
             kwargs.get('port', PORT)
         )
-        self.timeout = kwargs.get('timeout', 10)
+        self.timeout = kwargs.get('timeout', TIMEOUT)
 
     def connect(self):
         try:
@@ -21,14 +21,14 @@ class Client:
 
     def inc(self):
         # '+' = 0x2B
-        self.send_data(PLUS)
+        self.send_data('+', ' c')
 
     def dec(self):
         # '-' = 0x2D
-        self.send_data(MINUS)
+        self.send_data('-', ' c')
 
-    def receive_data(self):
-        unpacker = struct.Struct(BYTE_ORDER + ' I')
+    def receive_data(self, type):
+        unpacker = struct.Struct(BYTE_ORDER + type)
         try:
             data = self.sock.recv(unpacker.size)
             print >> sys.stderr, 'received "%s"' % binascii.hexlify(data)
@@ -38,14 +38,15 @@ class Client:
             raise
         return unpacked_data[0]
 
-    def send_data(self, value):  # value must be a integer
+    def send_data(self, value, type):  # value must be a integer
         # send data through sendall method
-        packed_data = struct.Struct(BYTE_ORDER + ' I').pack(value)
+
+        packed_data = struct.Struct(BYTE_ORDER + type).pack(value)
 
         try:
             print >> sys.stderr, 'sending "%s"' % binascii.hexlify(packed_data), value
             self.sock.sendall(packed_data)
-            print self.receive_data()
+            print self.receive_data(' I')
         except:
             print >> sys.stderr, 'error in send_data'
             raise

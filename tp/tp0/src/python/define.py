@@ -7,6 +7,7 @@ import binascii
 HOST = 'localhost'
 PORT = 51515
 MAX = 999
+TIMEOUT = 5
 
 # ('@', 'native, native'),
 # ('=', 'native, standard'),

@@ -1,20 +1,5 @@
 from define import *
 
-# unpacker = struct.Struct('! I')
-#
-# while True:
-#     print >> sys.stderr, '\nwaiting for a connection'
-#     connection, client_address = sock.accept()
-#     try:
-#         data = connection.recv(unpacker.size)
-#         print >> sys.stderr, 'received "%s"' % binascii.hexlify(data)
-#
-#         unpacked_data = unpacker.unpack(data)
-#         print >> sys.stderr, 'unpacked:', format(unpacked_data[0], '02x'), unpacked_data
-#
-#     finally:
-#         connection.close()
-
 class Server:
 
     def __init__(self, **kwargs):
@@ -38,11 +23,11 @@ class Server:
 
     def send_back(self):
         print >> sys.stderr, 'sending data back to the client'
-        self.send_data(self.counter)
+        self.send_data(self.counter, ' I')
 
-    def send_data(self, value):  # value must be a integer
+    def send_data(self, value, type):  # value must be a integer
         # send data through sendall method
-        packed_data = struct.Struct(BYTE_ORDER + ' I').pack(value)
+        packed_data = struct.Struct(BYTE_ORDER + type).pack(value)
 
         try:
             print >> sys.stderr, 'sending "%s"' % binascii.hexlify(packed_data), value
@@ -54,21 +39,21 @@ class Server:
     def manage_connection(self):
         print >> sys.stderr, 'connection from', self.client_address
 
-        unpacker = struct.Struct('! I')
+        unpacker = struct.Struct(BYTE_ORDER + ' c')
 
         try:
             data = self.connection.recv(unpacker.size)
             print >> sys.stderr, 'received "%s"' % binascii.hexlify(data)
             unpacked_data = unpacker.unpack(data)
-            if str(unichr(unpacked_data[0])) == '-':
+            if unpacked_data[0] == '-':
                 self.sub_counter()
-            elif str(unichr(unpacked_data[0])) == '+':
+            elif unpacked_data[0] == '+':
                 self.add_counter()
             else:
+                print >> sys.stderr, 'invalid byte collected'
                 print >> sys.stderr, 'unpacked:', unpacked_data
 
             self.send_back()
-
         except:
             raise
 
@@ -80,13 +65,19 @@ class Server:
         # Listen for incoming connections
         self.sock.listen(1)
 
+
         while True:
             # wait for a connections
             print >> sys.stderr, 'waiting for a connection'
-            self.connection, self.client_address = self.sock.accept()
+            try: # To CTRL+C do not let socket port open
+                self.connection, self.client_address = self.sock.accept()
+            except:
+                self.close_connection()
+                raise
+
+            self.connection.settimeout(TIMEOUT)
             try:
                 self.manage_connection()
-                # TODO insert send back
             finally:
                 # Clean up the connection
                 self.close_connection()
