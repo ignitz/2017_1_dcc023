@@ -6,6 +6,9 @@ build
 client/client
 server/server
 
+# JetBrains
+.idea/
+
 # Prerequisites
 *.d
 
