@@ -1,45 +1,55 @@
+/* A simple server in the internet domain using TCP
+   The port number is passed as an argument */
 #include <stdio.h>
-#include <sys/types.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <sys/types.h> 
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include <netdb.h>
-#define SERVER_PORT 5432
-#define MAX_PENDING 5
-#define MAX_LINE 256
 
-int
-main()
+void error(const char *msg)
 {
-  struct sockaddr_in sin;
-  char buf[MAX_LINE];
-  int len;
-  int s, new_s;
+  perror(msg);
+  exit(1);
+}
 
-  /* build address data structure */
-  bzero((char *)&sin, sizeof(sin));
-  sin.sin_family = AF_INET;
-  sin.sin_addr.s_addr = INADDR_ANY;
-  sin.sin_port = htons(SERVER_PORT);
-
-  /* setup passive open */
-  if ((s = socket(PF_INET, SOCK_STREAM, 0)) < 0) {
-    perror("simplex-talk: socket");
+int main(int argc, char *argv[])
+{
+  int sockfd, newsockfd, portno;
+  socklen_t clilen;
+  char buffer[256];
+  struct sockaddr_in serv_addr, cli_addr;
+  int n;
+  if (argc < 2) {
+    fprintf(stderr,"ERROR, no port provided\n");
     exit(1);
   }
-  if ((bind(s, (struct sockaddr *)&sin, sizeof(sin))) < 0) {
-    perror("simplex-talk: bind");
-    exit(1);
-  }
-  listen(s, MAX_PENDING);
-
-  /* wait for connection, then receive and print text */
-  while(1) {
-    if ((new_s = accept(s, (struct sockaddr *)&sin, &len)) < 0) {
-      perror("simplex-talk: accept");
-      exit(1);
-    }
-    while (len = recv(new_s, buf, sizeof(buf), 0))
-    fputs(buf, stdout);
-    close(new_s);
-  }
+  sockfd = socket(AF_INET, SOCK_STREAM, 0);
+  if (sockfd < 0)
+    error("ERROR opening socket");
+  bzero((char *) &serv_addr, sizeof(serv_addr));
+  portno = atoi(argv[1]);
+  serv_addr.sin_family = AF_INET;
+  serv_addr.sin_addr.s_addr = INADDR_ANY;
+  serv_addr.sin_port = htons(portno);
+  if (bind(sockfd, (struct sockaddr *) &serv_addr,
+           sizeof(serv_addr)) < 0)
+    error("ERROR on binding");
+  listen(sockfd,5);
+  clilen = sizeof(cli_addr);
+  newsockfd = accept(sockfd,
+                     (struct sockaddr *) &cli_addr,
+                     &clilen);
+  if (newsockfd < 0)
+    error("ERROR on accept");
+  bzero(buffer,256);
+  n = read(newsockfd,buffer,255);
+  if (n < 0) error("ERROR reading from socket");
+  printf("Here is the message: %s\n",buffer);
+  n = write(newsockfd,"I got your message",18);
+  if (n < 0) error("ERROR writing to socket");
+  close(newsockfd);
+  close(sockfd);
+  return 0;
 }

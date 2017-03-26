@@ -188,7 +188,7 @@ all: $(BIN_PATH)/$(BIN_NAME)
 
 # Run main
 run:
-	@./$(BIN_NAME) localhost
+	@./$(BIN_NAME) localhost 51515
 
 # Link the executable
 $(BIN_PATH)/$(BIN_NAME): $(OBJECTS)

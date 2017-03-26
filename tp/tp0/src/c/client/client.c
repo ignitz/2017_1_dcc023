@@ -1,59 +1,59 @@
 #include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <string.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h>
-#define SERVER_PORT 5432
-#define MAX_LINE 256
-#define h_addr h_addr_list[0]
 
-int
-main(int argc, char * argv[])
+#define h_addr h_addr_list[0] /* for backward compatibility */
+
+void error(const char *msg)
 {
-  FILE *fp;
-  struct hostent *hp;
-  struct sockaddr_in sin;
-  char *host;
-  char buf[MAX_LINE];
-  int s;
-  int len;
+  perror(msg);
+  exit(0);
+}
 
-  if (argc==2) {
-    host = argv[1];
-  }
-  else {
-    fprintf(stderr, "usage: simplex-talk host\n");
-    exit(1);
-  }
-  /* translate host name into peer's IP address */
-  hp = gethostbyname(host);
-  if (!hp) {
-    fprintf(stderr, "simplex-talk: unknown host: %s\n", host);
-    exit(1);
-  }
+int main(int argc, char *argv[])
+{
+  int sockfd, portno, n;
+  struct sockaddr_in serv_addr;
+  struct hostent *server;
 
-  /* build address data structure */
-  bzero((char *)&sin, sizeof(sin));
-  sin.sin_family = AF_INET;
-  bcopy(hp->h_addr, (char *)&sin.sin_addr, hp->h_length);
-  sin.sin_port = htons(SERVER_PORT);
-
-  /* active open */
-  if ((s = socket(PF_INET, SOCK_STREAM, 0)) < 0) {
-    perror("simplex-talk: socket");
-    exit(1);
+  char buffer[256];
+  if (argc < 3) {
+    fprintf(stderr,"usage %s hostname port\n", argv[0]);
+    exit(0);
   }
-  if (connect(s, (struct sockaddr *)&sin, sizeof(sin)) < 0)
-  {
-    perror("simplex-talk: connect");
-    close(s);
-    exit(1);
+  portno = atoi(argv[2]);
+  sockfd = socket(AF_INET, SOCK_STREAM, 0);
+  if (sockfd < 0)
+    error("ERROR opening socket");
+  server = gethostbyname(argv[1]);
+  if (server == NULL) {
+    fprintf(stderr,"ERROR, no such host\n");
+    exit(0);
   }
-
-  /* main loop: get and send lines of text */
-  while (fgets(buf, sizeof(buf), stdin)) {
-    buf[MAX_LINE-1] = '\0';
-    len = strlen(buf) + 1;
-    send(s, buf, len, 0);
-  }
+  bzero((char *) &serv_addr, sizeof(serv_addr));
+  serv_addr.sin_family = AF_INET;
+  bcopy((char *)server->h_addr,
+        (char *)&serv_addr.sin_addr.s_addr,
+        server->h_length);
+  serv_addr.sin_port = htons(portno);
+  if (connect(sockfd,(struct sockaddr *) &serv_addr,sizeof(serv_addr)) < 0)
+    error("ERROR connecting");
+  printf("Please enter the message: ");
+  bzero(buffer,256);
+  fgets(buffer,255,stdin);
+  n = write(sockfd,buffer,strlen(buffer));
+  if (n < 0)
+    error("ERROR writing to socket");
+  bzero(buffer,256);
+  n = read(sockfd,buffer,255);
+  if (n < 0)
+    error("ERROR reading from socket");
+  printf("%s\n",buffer);
+  close(sockfd);
+  return 0;
 }
