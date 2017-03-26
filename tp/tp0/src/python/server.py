@@ -1,9 +1,24 @@
 from define import *
 
-class Server():
+# unpacker = struct.Struct('! I')
+#
+# while True:
+#     print >> sys.stderr, '\nwaiting for a connection'
+#     connection, client_address = sock.accept()
+#     try:
+#         data = connection.recv(unpacker.size)
+#         print >> sys.stderr, 'received "%s"' % binascii.hexlify(data)
+#
+#         unpacked_data = unpacker.unpack(data)
+#         print >> sys.stderr, 'unpacked:', format(unpacked_data[0], '02x'), unpacked_data
+#
+#     finally:
+#         connection.close()
+
+class Server:
 
     def __init__(self, **kwargs):
-        self.host = kwargs.get('host', '')
+        self.host = kwargs.get('host', '') # listen to anyone
         self.port = kwargs.get('port', PORT)
         self.counter = kwargs.get('counter', 0)
         self.max = kwargs.get('max', MAX)
@@ -12,28 +27,6 @@ class Server():
         self.address = None
         self.timeout = kwargs.get('timeout', socket._GLOBAL_DEFAULT_TIMEOUT)
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
-    def receive_data(self):
-        response = ''
-        while True:
-            data = self.connection.recv(1)
-            print >> sys.stderr, 'received "%s"' % data
-            if data:
-                response += data
-            else:
-                print >> sys.stderr, 'no more data from', self.client_address
-                break
-        return response
-
-    def send_data(self, data):
-        # send data through sendall method
-        print data
-        try:
-            print >>sys.stderr, 'sending "%s"' % data
-            self.connection.sendall(data)
-        except:
-            print >>sys.stderr, 'error in send_data'
-            raise
 
     # Contadores
     def add_counter(self):
@@ -45,23 +38,39 @@ class Server():
 
     def send_back(self):
         print >> sys.stderr, 'sending data back to the client'
-        self.connection.sendall(struct.pack('>i', self.counter))
+        self.send_data(self.counter)
+
+    def send_data(self, value):  # value must be a integer
+        # send data through sendall method
+        packed_data = struct.Struct(BYTE_ORDER + ' I').pack(value)
+
+        try:
+            print >> sys.stderr, 'sending "%s"' % binascii.hexlify(packed_data), value
+            self.connection.sendall(packed_data)
+        except:
+            print >> sys.stderr, 'error in send_data'
+            raise
 
     def manage_connection(self):
         print >> sys.stderr, 'connection from', self.client_address
-        # Receive the data in small chunks and retransmit it
-        while True:
-            data = self.connection.recv(1)
-            if data:
-                print >> sys.stderr, 'received "%s"' % data
-                if data.__str__() == '+':
-                    self.add_counter()
-                elif data.__str__() == '-':
-                    self.sub_counter()
+
+        unpacker = struct.Struct('! I')
+
+        try:
+            data = self.connection.recv(unpacker.size)
+            print >> sys.stderr, 'received "%s"' % binascii.hexlify(data)
+            unpacked_data = unpacker.unpack(data)
+            if str(unichr(unpacked_data[0])) == '-':
+                self.sub_counter()
+            elif str(unichr(unpacked_data[0])) == '+':
+                self.add_counter()
             else:
-                print >> sys.stderr, 'no more data from', self.client_address
-                break
-        self.send_data(struct.pack(BYTE_ORDER, self.counter))
+                print >> sys.stderr, 'unpacked:', unpacked_data
+
+            self.send_back()
+
+        except:
+            raise
 
     def start_connection(self):
         # Bind the socket to the port
