@@ -1,0 +1,16 @@
+# for src dir
+#####################
+bin
+build
+
+# Binaries
+dcc023c2
+dcc023c2chksum
+dcc023c2len
+dcc023c2both
+
+# Makefile temp files
+*.swp
+
+# output files
+src/tests/temp/
