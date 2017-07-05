@@ -35,6 +35,8 @@ Se tiver funções, ou constantes que serão comuns entre os programas, colocare
 
 Segundo a especificação:
 
+`serventTP3 <localport> <key-values> <ip1:port1> ... <ipN:portN>`
+
 O programa *servent* deve então ler o arquivo key-values e criar um dicionário onde os pares chave-valor serão armazenados e abrir um socket UDP no porto local indicado e ficar esperando por mensagens.
 
 A lista de pares `IP:porto` recebida na linha de comando identifica os pares que serão vizinhos daquele nó. Cada nó pode trocar mensagem com seus vizinhos, e a rede peer-to-peer é formada pelas vizinhanças formadas entre os nós da rede, criando uma rede sobreposta (overlay).
