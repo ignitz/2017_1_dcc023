@@ -1,8 +1,0 @@
-# binaries and obj dirs from Makefile
-bin
-build
-
-# exec file
-client/clientTP3
-servent/serventTP3
-
